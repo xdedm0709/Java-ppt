@@ -19,16 +19,16 @@ import com.tedu.manager.GameElement;
  * @说明 游戏的主要面板
  * @author renjj
  * @功能说明 主要进行元素的显示，同时进行界面的刷新(多线程)
- * 
+ *
  * @题外话 java开发实现思考的应该是：做继承或者是接口实现
- * 
+ *
  * @多线程刷新 1.本类实现线程接口
  *             2.本类中定义一个内部类来实现
  */
 public class GameMainJPanel extends JPanel implements Runnable{
-//	联动管理器
+	//	联动管理器
 	private ElementManager em;
-	
+
 	public GameMainJPanel() {
 		init();
 	}
@@ -58,7 +58,7 @@ public class GameMainJPanel extends JPanel implements Runnable{
 				obj.showElement(g);//调用每个类的自己的show方法完成自己的显示
 			}
 		}
-		
+
 //		Set<GameElement> set = all.keySet(); //得到所有的key集合
 //		for(GameElement ge:set) { //迭代器
 //			List<ElementObj> list = all.get(ge);
@@ -67,7 +67,7 @@ public class GameMainJPanel extends JPanel implements Runnable{
 //				obj.showElement(g);//调用每个类的自己的show方法完成自己的显示
 //			}
 //		}
-		
+
 	}
 	@Override
 	public void run() {  //接口实现
@@ -80,12 +80,23 @@ public class GameMainJPanel extends JPanel implements Runnable{
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}		
+			}
 		}
 	}
-	
-	
+
+
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -79,7 +79,7 @@ public class PlayFile extends ElementObj{
 //			time=gameTime;//为下次变装做准备
 //			this.setW(this.getW()+2);
 //			this.setH(this.getH()+2);
-////			你变图片不就完啦
+////			变图片就完了
 //		}
 //	}
 	
