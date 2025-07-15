@@ -71,15 +71,35 @@ public class GameMainJPanel extends JPanel implements Runnable{
 	}
 	@Override
 	public void run() {  //接口实现
-		while(true) {
-//			System.out.println("多线程运动");
+		while (true) {
+			// 1. 【核心】游戏逻辑更新
+			gameLogicUpdate();
+
+			// 2. 界面重绘
 			this.repaint();
-//			一般情况下，多线程都会使用一个休眠,控制速度
+
+			// 3. 休眠，控制游戏速度
 			try {
-				Thread.sleep(10); //休眠10毫秒 1秒刷新20次
+				Thread.sleep(10); // 大约100 FPS
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
+			}
+		}
+	}
+
+	/**
+	 * @说明 游戏核心逻辑，在这里驱动所有元素的行为
+	 */
+	private void gameLogicUpdate() {
+		Map<GameElement, List<ElementObj>> all = em.getGameElements();
+		// 遍历所有类型的元素
+		for (GameElement ge : GameElement.values()) {
+			List<ElementObj> list = all.get(ge);
+			// 倒序遍历，防止在遍历中删除元素时出错
+			for (int i = list.size() - 1; i >= 0; i--) {
+				ElementObj obj = list.get(i);
+				// 调用模板方法，驱动元素的 移动、换装、开火 等所有行为
+				obj.model(System.currentTimeMillis());
 			}
 		}
 	}

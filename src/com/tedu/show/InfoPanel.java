@@ -1,4 +1,3 @@
-// 文件路径: com/tedu/show/InfoPanel.java
 package com.tedu.show;
 
 import java.awt.Color;

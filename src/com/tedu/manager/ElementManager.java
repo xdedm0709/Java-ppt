@@ -10,9 +10,8 @@ import com.tedu.element.ElementObj;
 /**
  * @说明 本类是元素管理器，专门存储所有的元素，同时，提供方法
  * 		给予视图和控制获取数据
- * @author renjj
- * @问题一：存储所有元素数据，怎么存放？ list map set 3大集合
- * @问题二：管理器是视图和控制要访问，管理器就必须只有一个，单例模式
+ * @author xdedm0709
+ * 管理器是视图和控制要访问，管理器就必须只有一个，单例模式
  */
 public class ElementManager {
 	/*
@@ -37,7 +36,6 @@ public class ElementManager {
 //	依据key返回 list集合，取出某一类元素
 	public List<ElementObj> getElementsByKey(GameElement ge){
 		String str = new String("abcd");
-//		请问这里产生几个对象？分别是什么对象？分别存储在哪里？
 //		当一块内存没有任何一个引用指向的时候，会被GC回收。
 		return gameElements.get(ge);
 	}	
