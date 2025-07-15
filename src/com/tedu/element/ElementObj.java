@@ -72,12 +72,14 @@ public abstract class ElementObj {
 		updateImage();
 //		在移动
 		move();
-//		在发射子弹
-		add(gameTime);
+
+		// 执行元素的“行动”
+		// 玩家放置泡泡
+		action(gameTime);
 	}
 //	 long ... aaa  不定长的 数组,可以向这个方法传输 N个 long类型的数据
 	protected void updateImage() {}
-	protected void add(long gameTime){}
+	protected void action(long gameTime) {}
 	
 //	死亡方法  给子类继承的
 	public void die() {  //死亡也是一个对象

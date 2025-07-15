@@ -92,14 +92,20 @@ public class GameMainJPanel extends JPanel implements Runnable{
 	 */
 	private void gameLogicUpdate() {
 		Map<GameElement, List<ElementObj>> all = em.getGameElements();
+		long gameTime = System.currentTimeMillis();
 		// 遍历所有类型的元素
 		for (GameElement ge : GameElement.values()) {
 			List<ElementObj> list = all.get(ge);
 			// 倒序遍历，防止在遍历中删除元素时出错
 			for (int i = list.size() - 1; i >= 0; i--) {
 				ElementObj obj = list.get(i);
+				// 如果元素已经死亡，就将它从列表中移除，并跳过后续处理
+				if (!obj.isLive()) {
+					list.remove(i);
+					continue;
+				}
 				// 调用模板方法，驱动元素的 移动、换装、开火 等所有行为
-				obj.model(System.currentTimeMillis());
+				obj.model(gameTime);
 			}
 		}
 	}

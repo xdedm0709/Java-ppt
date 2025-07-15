@@ -27,6 +27,8 @@ public class Play extends ElementObj {
 	private int frameDelay = 0; // 用于控制动画速度的计时器
 	private int animationSpeed = 5; // 动画速度，数字越大动画越慢
 
+	private boolean wantsToPlaceBubble = false; // 放置泡泡的状态
+
 	public Play() {}
 
 	// 这个构造函数可能不再需要，因为我们使用createElement
@@ -93,7 +95,9 @@ public class Play extends ElementObj {
 					this.right = false; this.left = false;
 					this.up = false; this.down = true; this.fx = "down"; break;
 				case 32:
-					this.pkType = true; break;
+					this.wantsToPlaceBubble = true;
+					System.out.println("Play 对象收到指令：想要放置泡泡！"); // 增加日志
+					break;
 			}
 		} else {
 			switch (key) {
@@ -101,7 +105,7 @@ public class Play extends ElementObj {
 				case 38: this.up = false; break;
 				case 39: this.right = false; break;
 				case 40: this.down = false; break;
-				case 32: this.pkType = false; break;
+				case 32: break;
 			}
 		}
 	}
@@ -174,15 +178,24 @@ public class Play extends ElementObj {
 	private long filetime = 0;
 
 	@Override
-	public void add(long gameTime) {
-		if (!this.pkType) {
-			return;
-		}
-		this.pkType = false;
+	protected void action(long gameTime) {
+		// 检查是否要放置泡泡
+		if (this.wantsToPlaceBubble) {
+			this.wantsToPlaceBubble = false; // 处理完意图后，立刻重置状态
 
-		ElementObj obj = GameLoad.getObj("file");
-		ElementObj element = obj.createElement(this.toString());
-		ElementManager.getManager().addElement(element, GameElement.PLAYFILE);
+			System.out.println("Play.action() 正在执行：创建并放置泡泡...");
+
+			ElementObj bubbleTemplate = GameLoad.getObj("bubble");
+			if (bubbleTemplate != null) {
+				String bubbleStr = (this.getX() + this.getW()/2) + "," + (this.getY() + this.getH()/2);
+				ElementObj bubble = bubbleTemplate.createElement(bubbleStr);
+				ElementManager.getManager().addElement(bubble, GameElement.BUBBLE);
+				System.out.println("泡泡已成功创建并添加到管理器。");
+			} else {
+				System.err.println("创建泡泡失败！无法从 GameLoad 获取 'bubble' 的对象模板。");
+			}
+		}
+
 	}
 
 	// toString方法用于生成子弹

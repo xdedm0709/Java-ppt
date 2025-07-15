@@ -120,7 +120,14 @@ public class GameLoad {
 				if (key.equals("player")) {
 					// 如果是玩家，执行精灵图切割逻辑
 					slicePlayerSprite(imageUrl);
-				} else {
+				}
+				else if (key.equals("bubble")) { // 处理泡泡
+					sliceBubbleAnimation(imageUrl);
+				}
+				else if (key.equals("explosion_sprite")) { // 处理爆炸
+					sliceExplosionSprites(imageUrl);
+				}
+				else {
 					// 否则，作为单个图片加载
 					imgMap.put(key, new ImageIcon(imageUrl));
 					System.out.println("成功加载图片: " + key + " -> " + path);
@@ -171,6 +178,141 @@ public class GameLoad {
 			imgMaps.put(directions[i], frames);
 		}
 		System.out.println("玩家动画已全部加载。");
+	}
+
+	/**
+	 * 专门用于切割泡泡的动画
+	 */
+	private static void sliceBubbleAnimation(URL imageUrl) {
+		System.out.println("  -- 开始切割泡泡动画...");
+		ImageIcon masterIcon = new ImageIcon(imageUrl);
+		Image masterImage = masterIcon.getImage();
+
+		// 检查图片是否成功加载
+		if (masterIcon.getIconWidth() <= 0 || masterIcon.getIconHeight() <= 0) {
+			System.err.println("加载泡泡精灵图失败，图片尺寸无效: " + imageUrl.getPath());
+			return;
+		}
+
+		// 为了方便裁剪，将 Image 转换为 BufferedImage
+		BufferedImage bufferedMaster = new BufferedImage(
+				masterIcon.getIconWidth(),
+				masterIcon.getIconHeight(),
+				BufferedImage.TYPE_INT_ARGB);
+		// 使用 Graphics2D 绘制以确保透明度被保留
+		Graphics2D g2d = bufferedMaster.createGraphics();
+		g2d.drawImage(masterImage, 0, 0, null);
+		g2d.dispose();
+
+		int cols = 4;
+		int rows = 4;
+		int spriteWidth = masterIcon.getIconWidth() / cols;
+		int spriteHeight = masterIcon.getIconHeight() / rows;
+
+		List<ImageIcon> frames = new ArrayList<>();
+
+		// 按照从左到右，从上到下的顺序切割
+		for (int i = 0; i < rows; i++) { // i 代表行号
+			for (int j = 0; j < cols; j++) { // j 代表列号
+				int x = j * spriteWidth;
+				int y = i * spriteHeight;
+
+				// 使用 getSubimage 方法从主图中切割出子图
+				BufferedImage subImg = bufferedMaster.getSubimage(x, y, spriteWidth, spriteHeight);
+
+				// 将切割出的子图转换为 ImageIcon 并添加到列表中
+				frames.add(new ImageIcon(subImg));
+			}
+		}
+
+		// 将包含所有动画帧的列表存入 imgMaps 中，使用 "bubble" 作为键
+		imgMaps.put("bubble", frames);
+	}
+
+	/**
+	 * 新增方法：专门用于切割爆炸水柱的各个部分。
+	 * 由于这张精灵图布局不规则，我们需要手动指定每个动画序列的坐标。
+	 * @param imageUrl 爆炸效果精灵图 (Animations.png) 的URL
+	 */
+	private static void sliceExplosionSprites(URL imageUrl) {
+		System.out.println("  -- 开始切割爆炸精灵图...");
+		ImageIcon masterIcon = new ImageIcon(imageUrl);
+		Image masterImage = masterIcon.getImage();
+
+		if (masterIcon.getIconWidth() <= 0 || masterIcon.getIconHeight() <= 0) {
+			System.err.println("加载爆炸精灵图失败，图片尺寸无效: " + imageUrl.getPath());
+			return;
+		}
+
+		BufferedImage bufferedMaster = new BufferedImage(
+				masterIcon.getIconWidth(),
+				masterIcon.getIconHeight(),
+				BufferedImage.TYPE_INT_ARGB);
+		Graphics2D g2d = bufferedMaster.createGraphics();
+		g2d.drawImage(masterImage, 0, 0, null);
+		g2d.dispose();
+
+		// =======================================================================
+		// 注意：下面的坐标 (x, y) 和尺寸 (w, h) 是估算值！
+		// 你需要用图像编辑工具打开 Animations.png，精确测量每个动画条的
+		// 左上角像素坐标和单个帧的宽高，然后替换掉这里的数字。
+		// =======================================================================
+
+		// 假设每个动画帧是 32x32 像素, 每个动画有4帧
+		int spriteWidth = 32;
+		int spriteHeight = 32;
+		int frameCount = 4; // 假设大部分动画是4帧
+
+		// 切割中心爆炸动画 (假设从 x=0, y=40 开始)
+		List<ImageIcon> centerAnim = cutAnimation(bufferedMaster, 0, 40, spriteWidth, spriteHeight, frameCount);
+		imgMaps.put("explosion_center", centerAnim);
+
+		// 切割上端水柱动画 (假设从 x=0, y=0 开始)
+		List<ImageIcon> upAnim = cutAnimation(bufferedMaster, 0, 0, spriteWidth, spriteHeight, frameCount);
+		imgMaps.put("explosion_up_end", upAnim);
+
+		// 切割下端水柱动画 (假设从 x=128, y=0 开始)
+		List<ImageIcon> downAnim = cutAnimation(bufferedMaster, 128, 0, spriteWidth, spriteHeight, frameCount);
+		imgMaps.put("explosion_down_end", downAnim);
+
+		// 切割左端水柱动画 (假设从 x=0, y=120 开始)
+		List<ImageIcon> leftAnim = cutAnimation(bufferedMaster, 0, 120, spriteWidth, spriteHeight, frameCount);
+		imgMaps.put("explosion_left_end", leftAnim);
+
+		// 切割右端水柱动画 (假设从 x=128, y=120 开始)
+		List<ImageIcon> rightAnim = cutAnimation(bufferedMaster, 128, 120, spriteWidth, spriteHeight, frameCount);
+		imgMaps.put("explosion_right_end", rightAnim);
+
+		// 切割垂直水柱动画 (假设从 x=0, y=80 开始)
+		List<ImageIcon> verticalAnim = cutAnimation(bufferedMaster, 0, 80, spriteWidth, spriteHeight, frameCount);
+		imgMaps.put("explosion_v", verticalAnim);
+
+		// 切割水平水柱动画 (假设从 x=128, y=80 开始)
+		List<ImageIcon> horizontalAnim = cutAnimation(bufferedMaster, 128, 80, spriteWidth, spriteHeight, frameCount);
+		imgMaps.put("explosion_h", horizontalAnim);
+
+		System.out.println("  -- 爆炸水柱动画已全部加载。");
+	}
+
+	/**
+	 * 辅助方法：从主图上切割出一个水平的动画条。
+	 * @param masterImage 包含所有动画帧的主图
+	 * @param x 动画条第一个帧的左上角 x 坐标
+	 * @param y 动画条第一个帧的左上角 y 坐标
+	 * @param w 每个动画帧的宽度
+	 * @param h 每个动画帧的高度
+	 * @param framesCount 这个动画条包含多少帧
+	 * @return 一个包含所有动画帧图像的列表
+	 */
+	private static List<ImageIcon> cutAnimation(BufferedImage masterImage, int x, int y, int w, int h, int framesCount) {
+		List<ImageIcon> frames = new ArrayList<>();
+		for (int i = 0; i < framesCount; i++) {
+			// 假设动画帧是水平排列的
+			int frameX = x + (i * w);
+			BufferedImage subImg = masterImage.getSubimage(frameX, y, w, h);
+			frames.add(new ImageIcon(subImg));
+		}
+		return frames;
 	}
 
 	/**
