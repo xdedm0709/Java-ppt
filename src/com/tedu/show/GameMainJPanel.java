@@ -14,6 +14,7 @@ import com.tedu.element.ElementObj;
 import com.tedu.element.Play;
 import com.tedu.manager.ElementManager;
 import com.tedu.manager.GameElement;
+import com.tedu.manager.GameState;
 
 /**
  * @说明 游戏的主要面板
@@ -28,13 +29,18 @@ import com.tedu.manager.GameElement;
 public class GameMainJPanel extends JPanel implements Runnable{
 	//	联动管理器
 	private ElementManager em;
+	private GameState currentState; // 用于管理游戏状态的变量
+	private GameJFrame gameFrame;   // 持有对主窗体的引用，以便把引用传递给结束菜单
 
-	public GameMainJPanel() {
+	public GameMainJPanel(GameJFrame frame) {
+		this.gameFrame = frame;
+		this.setLayout(null); // 为能够添加子面板，设置布局为null
 		init();
 	}
 
 	public void init() {
 		em = ElementManager.getManager();//得到元素管理器对象
+		this.currentState = GameState.PLAYING; // 游戏面板一创建，状态就是 PLAYING
 	}
 	/**
 	 * paint方法是进行绘画元素。
@@ -46,18 +52,16 @@ public class GameMainJPanel extends JPanel implements Runnable{
 		super.paint(g);  //调用父类的paint方法
 //		map  key-value  key是无序不可重复的。
 //		set  和map的key一样 无序不可重复的
-		Map<GameElement, List<ElementObj>> all = em.getGameElements();
-//		GameElement.values();//隐藏方法  返回值是一个数组,数组的顺序就是定义枚举的顺序
-		for(GameElement ge:GameElement.values()) {
-			List<ElementObj> list = all.get(ge);
-			for(int i=0;i<list.size();i++) {
-				ElementObj obj=list.get(i);//读取为基类
-//				if(ge.equals(GameElement.PLAYFILE)) {
-//					System.out.println(":::::::::::"+obj);
-//				}
-				obj.showElement(g);//调用每个类的自己的show方法完成自己的显示
+		if (currentState == GameState.PLAYING) {
+			Map<GameElement, List<ElementObj>> all = em.getGameElements();
+			for (GameElement ge : GameElement.values()) {
+				List<ElementObj> list = all.get(ge); // 从map中获取列表
+				for (ElementObj obj : list) {
+					obj.showElement(g);
+				}
 			}
 		}
+
 
 //		Set<GameElement> set = all.keySet(); //得到所有的key集合
 //		for(GameElement ge:set) { //迭代器
@@ -72,8 +76,11 @@ public class GameMainJPanel extends JPanel implements Runnable{
 	@Override
 	public void run() {  //接口实现
 		while (true) {
-			// 1. 【核心】游戏逻辑更新
-			gameLogicUpdate();
+			// 只有当游戏处于 PLAYING 状态时，才运行游戏逻辑
+			if (currentState == GameState.PLAYING) {
+				// 1. 游戏逻辑更新
+				gameLogicUpdate();
+			}
 
 			// 2. 界面重绘
 			this.repaint();
@@ -106,8 +113,51 @@ public class GameMainJPanel extends JPanel implements Runnable{
 				}
 				// 调用模板方法，驱动元素的 移动、换装、开火 等所有行为
 				obj.model(gameTime);
+				handleCollisions();
 			}
 		}
+	}
+	/**
+	 * 专门处理碰撞和死亡的方法
+	 */
+	private void handleCollisions() {
+		// 如果游戏已经结束，就不再需要检测碰撞
+		if (this.currentState != GameState.PLAYING) {
+			return;
+		}
+		List<ElementObj> players = em.getElementsByKey(GameElement.PLAY);
+		List<ElementObj> explosions = em.getElementsByKey(GameElement.EXPLOSION);
+
+		// 如果没有玩家，或者玩家已经死了，就不再检测
+		if (players.isEmpty() || !players.get(0).isLive()) {
+			return;
+		}
+
+		ElementObj player = players.get(0);
+
+		for (ElementObj explosion : explosions) {
+			if (player.pk(explosion)) {
+				player.die(); // 玩家死亡
+				this.currentState = GameState.GAME_OVER; // 切换游戏状态
+				showGameOverMenu(); // 显示游戏结束菜单
+				System.out.println("玩家死亡！游戏结束。");
+				break;
+			}
+		}
+	}
+
+	/**
+	 * 显示游戏结束菜单的方法
+	 */
+	private void showGameOverMenu() {
+		// 创建游戏结束面板，并把 GameJFrame 的引用传给它
+		GameOverPanel gameOverPanel = new GameOverPanel(this.gameFrame);
+		// 设置它的位置和大小以覆盖整个游戏面板
+		gameOverPanel.setBounds(0, 0, GameJFrame.GameX, GameJFrame.GameY);
+		// 将它添加到本面板(GameMainJPanel)的最上层
+		this.add(gameOverPanel, 0); // 添加到索引0，确保它在最上面
+		this.revalidate();
+		this.repaint();
 	}
 
 

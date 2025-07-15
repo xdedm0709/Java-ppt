@@ -115,6 +115,12 @@ public class Play extends ElementObj {
 	 */
 	@Override
 	public void move() {
+		// 只有在玩家尝试移动时才打印，避免控制台被刷屏
+		if (isMoving()) {
+			System.out.println("Play.move() 正在执行... 方向状态 (L,U,R,D): "
+					+ left + "," + up + "," + right + "," + down
+					+ " 当前坐标:(" + getX() + "," + getY() + ")");
+		}
 		// 1. 更新位置
 		if (this.left && this.getX() > 0) {
 			this.setX(this.getX() - 5); // 稍微增加速度以获得更好的体验

@@ -8,14 +8,13 @@ import com.tedu.manager.GameElement;
 import com.tedu.manager.GameLoad;
 import com.tedu.manager.ElementManager;
 
+import java.awt.event.MouseAdapter;
 import java.util.List;
 
 public class GameJFrame extends JFrame {
 	public static int GameX = 800;
 	public static int GameY = 600;
-
 	private JPanel currentPanel = null; // 当前正在显示的面板
-
 	public GameJFrame() {
 		init();
 	}
@@ -41,7 +40,7 @@ public class GameJFrame extends JFrame {
 		currentPanel.requestFocusInWindow(); // 为新面板请求焦点
 	}
 
-	// --- 提供给外部调用的切换指令 ---
+	// 提供给外部调用的切换指令
 
 	public void switchToStartMenu() {
 		switchPanel(new StartMenuPanel(this));
@@ -58,7 +57,7 @@ public class GameJFrame extends JFrame {
 		System.out.println("正在加载地图...");
 		GameLoad.MapLoad(1);
 
-		// 3. 【核心修改】直接在这里创建玩家，不再使用 loadPlay()
+		// 3. 直接在这里创建玩家
 		System.out.println("正在创建玩家...");
 
 		// a. 定义玩家在左下角的坐标
@@ -91,13 +90,20 @@ public class GameJFrame extends JFrame {
 		}
 
 		// 4. 创建并设置游戏面板
-		GameMainJPanel gamePanel = new GameMainJPanel();
+		GameMainJPanel gamePanel = new GameMainJPanel(this);
 
-		// 5. 添加键盘监听器
+		// 5. 将键盘监听器直接添加到游戏面板上
+		//    而不是添加到 JFrame 上
+
+		// 先移除 JFrame 上的旧监听器（如果有的话）
 		if (this.getKeyListeners().length > 0) {
 			this.removeKeyListener(this.getKeyListeners()[0]);
 		}
-		this.addKeyListener(new GameListener());
+
+		// 将新的监听器添加到 gamePanel
+		gamePanel.addKeyListener(new GameListener());
+		// 让 gamePanel 可以获得焦点
+		gamePanel.setFocusable(true);
 
 		// 6. 为窗体请求焦点
 		this.setFocusable(true);
@@ -105,10 +111,8 @@ public class GameJFrame extends JFrame {
 
 		// 7. 切换到游戏面板
 		switchPanel(gamePanel);
-		this.requestFocusInWindow();
 
 		// 8. 启动游戏线程
-		System.out.println("启动游戏线程...");
 		new Thread(gamePanel).start();
 	}
 
