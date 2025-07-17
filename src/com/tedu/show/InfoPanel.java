@@ -11,7 +11,11 @@ import java.awt.event.MouseEvent;
 import javax.swing.JPanel;
 
 import com.tedu.manager.GameLoad;
-
+/**
+ * @说明 游戏的说明面板（视图层）。
+ * @功能说明 两个说明面板
+ * @author xdedm0709
+ */
 public class InfoPanel extends JPanel {
 
     private String backgroundImageKey; // 要显示的背景图的Key

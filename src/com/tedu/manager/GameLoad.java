@@ -12,6 +12,7 @@ import javax.swing.ImageIcon;
 
 import com.tedu.element.ElementObj;
 import com.tedu.element.MapObj;
+import com.tedu.element.Play;
 
 /**
  * @说明  加载器(工具：用户读取配置文件的工具)工具类,大多提供的是 static方法
@@ -20,32 +21,34 @@ import com.tedu.element.MapObj;
  */
 public class GameLoad {
 	//	得到资源管理器
-	private static ElementManager em=ElementManager.getManager();
+	private static ElementManager em = ElementManager.getManager();
 
 	//	图片集合  使用map来进行存储     枚举类型配合移动(扩展)
-	public static Map<String,ImageIcon> imgMap = new HashMap<>();
+	public static Map<String, ImageIcon> imgMap = new HashMap<>();
 	// 新的Map，用于存储动画帧（图像序列）
 	// 用它来处理玩家
 	public static Map<String, List<ImageIcon>> imgMaps = new HashMap<>();
 
 	//	用户读取文件的类
-	private static Properties pro =new Properties();
+	private static Properties pro = new Properties();
 	/**
 	 * 扩展： 使用配置文件，来实例化对象 通过固定的key(字符串来实例化)
+	 *
 	 * @param args
 	 */
 	private static Map<String, Class<?>> objMap = new HashMap<>();
+
 	/**
+	 * @param mapId 文件编号 文件id
 	 * @说明 传入地图id有加载方法依据文件规则自动产生地图文件名称，加载文件
-	 * @param mapId  文件编号 文件id
 	 */
 	public static void MapLoad(int mapId) {
 //		得到啦我们的文件路径
-		String mapName="com/tedu/text/"+mapId+".map";
+		String mapName = "com/tedu/text/" + mapId + ".map";
 //		使用io流来获取文件对象   得到类加载器
 		ClassLoader classLoader = GameLoad.class.getClassLoader();
 		InputStream maps = classLoader.getResourceAsStream(mapName);
-		if(maps ==null) {
+		if (maps == null) {
 			System.out.println("配置文件读取异常,请重新安装");
 			return;
 		}
@@ -55,14 +58,14 @@ public class GameLoad {
 			pro.load(maps);
 //			可以直接动态的获取所有的key，有key就可以获取 value
 			Enumeration<?> names = pro.propertyNames();
-			while(names.hasMoreElements()) {//获取是无序的
+			while (names.hasMoreElements()) {//获取是无序的
 //				这样的迭代都有一个问题：一次迭代一个元素。
-				String key=names.nextElement().toString();
+				String key = names.nextElement().toString();
 				System.out.println(pro.getProperty(key));
 //				就可以自动创建和加载地图
-				String [] arrs=pro.getProperty(key).split(";");
-				for(int i=0;i<arrs.length;i++) {
-					ElementObj element = new MapObj().createElement(key+","+arrs[i]);
+				String[] arrs = pro.getProperty(key).split(";");
+				for (int i = 0; i < arrs.length; i++) {
+					ElementObj element = new MapObj().createElement(key + "," + arrs[i]);
 					System.out.println(element);
 					em.addElement(element, GameElement.MAPS);
 				}
@@ -120,14 +123,11 @@ public class GameLoad {
 				if (key.equals("player")) {
 					// 如果是玩家，执行精灵图切割逻辑
 					slicePlayerSprite(imageUrl);
-				}
-				else if (key.equals("bubble")) { // 处理泡泡
+				} else if (key.equals("bubble")) { // 处理泡泡
 					sliceBubbleAnimation(imageUrl);
-				}
-				else if (key.equals("explosion_sprite")) { // 处理爆炸
+				} else if (key.equals("explosion_sprite")) { // 处理爆炸
 					sliceExplosionSprites(imageUrl);
-				}
-				else {
+				} else {
 					// 否则，作为单个图片加载
 					imgMap.put(key, new ImageIcon(imageUrl));
 					System.out.println("成功加载图片: " + key + " -> " + path);
@@ -141,8 +141,8 @@ public class GameLoad {
 	}
 
 	/**
-	 * @说明 专门用于切割玩家精灵图的方法
 	 * @param imageUrl 精灵图的URL
+	 * @说明 专门用于切割玩家精灵图的方法
 	 */
 	private static void slicePlayerSprite(URL imageUrl) {
 		ImageIcon masterIcon = new ImageIcon(imageUrl);
@@ -232,6 +232,7 @@ public class GameLoad {
 	/**
 	 * 新增方法：专门用于切割爆炸水柱的各个部分。
 	 * 由于这张精灵图布局不规则，我们需要手动指定每个动画序列的坐标。
+	 *
 	 * @param imageUrl 爆炸效果精灵图 (Animations.png) 的URL
 	 */
 	private static void sliceExplosionSprites(URL imageUrl) {
@@ -296,11 +297,12 @@ public class GameLoad {
 
 	/**
 	 * 辅助方法：从主图上切割出一个水平的动画条。
+	 *
 	 * @param masterImage 包含所有动画帧的主图
-	 * @param x 动画条第一个帧的左上角 x 坐标
-	 * @param y 动画条第一个帧的左上角 y 坐标
-	 * @param w 每个动画帧的宽度
-	 * @param h 每个动画帧的高度
+	 * @param x           动画条第一个帧的左上角 x 坐标
+	 * @param y           动画条第一个帧的左上角 y 坐标
+	 * @param w           每个动画帧的宽度
+	 * @param h           每个动画帧的高度
 	 * @param framesCount 这个动画条包含多少帧
 	 * @return 一个包含所有动画帧图像的列表
 	 */
@@ -316,17 +318,23 @@ public class GameLoad {
 	}
 
 	/**
-	 * @说明 加载玩家。现在它只负责创建玩家实例。
+	 * @说明 创建玩家实例，并将其放置在指定位置。
+	 * @param x 玩家的初始 x 坐标
+	 * @param y 玩家的初始 y 坐标
+	 * @param direction 玩家的初始方向, 如 "up"
 	 */
-	public static void loadPlay() {
-		// 假设 objMap 已经被 loadObj() 加载完毕
-		ElementObj objTemplate = getObj("play");
-		if (objTemplate != null) {
-			ElementObj play = objTemplate.createElement("500,500,up");
-			em.addElement(play, GameElement.PLAY);
-			System.out.println("玩家实例创建成功。");
+	public static void loadPlayer(int x, int y, String direction) {
+		System.out.println("正在创建玩家...");
+		ElementObj playerTemplate = getObj("play");
+
+		if (playerTemplate instanceof Play) {
+			String creationStr = x + "," + y + "," + direction;
+			Play player = (Play) playerTemplate.createElement(creationStr);
+
+			em.addElement(player, GameElement.PLAY);
+			System.out.println("玩家已创建并添加。坐标:(" + x + "," + y + ")");
 		} else {
-			System.err.println("创建玩家失败，因为找不到 'play' 的对象模板。");
+			System.err.println("创建玩家失败！因为 'play' 的对象模板不是 Play 类型或未找到。");
 		}
 	}
 
@@ -334,7 +342,7 @@ public class GameLoad {
 	public static ElementObj getObj(String str) {
 		try {
 			Class<?> class1 = objMap.get(str);
-			if(class1 == null) {
+			if (class1 == null) {
 				System.err.println("错误: 在obj.pro的配置中找不到键为 '" + str + "' 的对象");
 				return null;
 			}
@@ -375,10 +383,5 @@ public class GameLoad {
 			e.printStackTrace();
 		}
 	}
-	//	用于测试
-	public static void main(String[] args) {
-		MapLoad(5);
-	}
-
 }
 

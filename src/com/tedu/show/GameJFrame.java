@@ -3,6 +3,7 @@ package com.tedu.show;
 import javax.swing.*;
 
 import com.tedu.controller.GameListener;
+import com.tedu.controller.GameThread;
 import com.tedu.element.Play;
 import com.tedu.manager.GameElement;
 import com.tedu.manager.GameLoad;
@@ -15,6 +16,8 @@ public class GameJFrame extends JFrame {
 	public static int GameX = 800;
 	public static int GameY = 600;
 	private JPanel currentPanel = null; // 当前正在显示的面板
+	public static final int TILE_SIZE = 30; // 定义为公共静态常量
+	public static final int CONTENT_PANE_HEIGHT = 529;
 	public GameJFrame() {
 		init();
 	}
@@ -49,71 +52,57 @@ public class GameJFrame extends JFrame {
 	public void switchToGamePanel() {
 		System.out.println("指令：切换到游戏面板...");
 
-		ElementManager em = ElementManager.getManager();
-		// 1. 清理上一局的游戏元素
-		em.init();
-
-		// 2. 加载本关卡的地图
-		System.out.println("正在加载地图...");
+		// 加载游戏世界
+		ElementManager.getManager().init();
 		GameLoad.MapLoad(1);
+		// 1. 计算目标格子 (1, 11) 的左上角像素坐标
+		int gridX = 1;
+		int gridY = 11;
+		int gridPixelX = gridX * TILE_SIZE; // 1 * 30 = 30
+		int gridPixelY = gridY * TILE_SIZE; // 11 * 30 = 330
 
-		// 3. 直接在这里创建玩家
-		System.out.println("正在创建玩家...");
+		// 2. 计算偏移量，使玩家居中于格子
+		int offsetX = (TILE_SIZE - Play.PLAYER_SIZE) / 2; // (30 - 30) / 2 = 0
+		int offsetY = (TILE_SIZE - Play.PLAYER_SIZE) / 2; // (30 - 30) / 2 = 0
 
-		// a. 定义玩家在左下角的坐标
-		int playerX = 50; // 离左边框50像素
-		int playerY = GameJFrame.GameY - 150; // GameY是窗口高度，减去一个值让玩家在底部
+		// 3. 计算玩家最终的左上角坐标
+		int playerX = gridPixelX + offsetX;
+		int playerY = gridPixelY + offsetY;
 
-		// b. 确保玩家的动画帧已加载
-		List<ImageIcon> playerFrames = GameLoad.imgMaps.get("up"); // 获取一个默认方向的动画
+		// 4. 调用 GameLoad 创建玩家
+		GameLoad.loadPlayer(playerX, playerY, "up");
 
-		if (playerFrames != null && !playerFrames.isEmpty()) {
-			// c. 创建 Play 实例
-			Play player = new Play();
 
-			// d. 手动设置所有属性
-			player.setX(playerX);
-			player.setY(playerY);
+		// 1. 创建游戏面板实例
+		GameMainJPanel gamePanel = new GameMainJPanel();
 
-			ImageIcon firstFrame = playerFrames.get(0);
-			player.setW(firstFrame.getIconWidth());
-			player.setH(firstFrame.getIconHeight());
-			player.setIcon(firstFrame);
-			// 你可以在这里设置其他需要的初始属性，比如 fx
+		// 2. 将面板设置到窗体上
+		switchPanel(gamePanel);
 
-			// e. 将创建好的玩家添加到管理器
-			em.addElement(player, GameElement.PLAY);
-			System.out.println("玩家已在左下角创建并添加。坐标:(" + playerX + "," + playerY + ")");
-
-		} else {
-			System.err.println("创建玩家失败！因为无法从 GameLoad.imgMaps 获取玩家动画帧。");
-		}
-
-		// 4. 创建并设置游戏面板
-		GameMainJPanel gamePanel = new GameMainJPanel(this);
-
-		// 5. 将键盘监听器直接添加到游戏面板上
-		//    而不是添加到 JFrame 上
-
-		// 先移除 JFrame 上的旧监听器（如果有的话）
+		// 3. 添加键盘监听器
 		if (this.getKeyListeners().length > 0) {
 			this.removeKeyListener(this.getKeyListeners()[0]);
 		}
-
-		// 将新的监听器添加到 gamePanel
-		gamePanel.addKeyListener(new GameListener());
-		// 让 gamePanel 可以获得焦点
-		gamePanel.setFocusable(true);
-
-		// 6. 为窗体请求焦点
+		this.addKeyListener(new GameListener());
 		this.setFocusable(true);
+		this.requestFocusInWindow();
 
+		// 4. 创建并启动游戏主线程，将面板和窗体的引用传给它
+		System.out.println("启动游戏主线程...");
+		GameThread gameThread = new GameThread(gamePanel, this);
+		gameThread.start();
+	}
 
-		// 7. 切换到游戏面板
-		switchPanel(gamePanel);
-
-		// 8. 启动游戏线程
-		new Thread(gamePanel).start();
+	// 切换到游戏结束面板的方法
+	public void switchToGameOverPanel() {
+		// 确保UI更新操作在事件分发线程（EDT）中执行，这是Swing的最佳实践
+		SwingUtilities.invokeLater(() -> {
+			// 移除键盘监听器，因为在结束菜单上不需要它
+			if (this.getKeyListeners().length > 0) {
+				this.removeKeyListener(this.getKeyListeners()[0]);
+			}
+			switchPanel(new GameOverPanel(this));
+		});
 	}
 
 
@@ -130,5 +119,6 @@ public class GameJFrame extends JFrame {
 		// 游戏启动时，首先显示开始菜单
 		switchToStartMenu();
 		this.setVisible(true);
+		System.out.println("内容面板的实际高度是: " + this.getContentPane().getHeight());
 	}
 }

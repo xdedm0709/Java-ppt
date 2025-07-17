@@ -6,6 +6,7 @@ import javax.swing.ImageIcon;
 import com.tedu.manager.ElementManager;
 import com.tedu.manager.GameElement;
 import com.tedu.manager.GameLoad;
+import com.tedu.show.GameJFrame;
 
 public class Bubble extends ElementObj {
 
@@ -15,23 +16,45 @@ public class Bubble extends ElementObj {
     private long creationTime;
     private long fuseTime = 2000; // 泡泡持续3秒后爆炸
     private int power = 2; // 爆炸威力（向外延伸2格）
-    private static final int TILE_SIZE = 40; // 假设每个格子的尺寸是40x40
+    private static final int TILE_SIZE = 30; // 假设每个格子的尺寸是40x40
+    // 定义泡泡的逻辑尺寸
+    public static final int BUBBLE_SIZE = 30;
 
     public Bubble() {}
 
     @Override
     public ElementObj createElement(String str) {
         String[] arr = str.split(",");
-        // 坐标需要对齐到格子
+        // 传入的坐标是玩家的大致位置
         int rawX = Integer.parseInt(arr[0]);
         int rawY = Integer.parseInt(arr[1]);
-        this.setX( (rawX + TILE_SIZE / 2) / TILE_SIZE * TILE_SIZE );
-        this.setY( (rawY + TILE_SIZE / 2) / TILE_SIZE * TILE_SIZE );
 
+        // 使用全局 TILE_SIZE 来对齐坐标
+        final int TILE_SIZE = GameJFrame.TILE_SIZE;
+        // 计算对齐后的左上角坐标
+        int alignedX = (rawX + TILE_SIZE / 2) / TILE_SIZE * TILE_SIZE;
+        int alignedY = (rawY + TILE_SIZE / 2) / TILE_SIZE * TILE_SIZE;
+
+        // 【核心修改 2】计算偏移量，使泡泡在格子里居中
+        int offsetX = (TILE_SIZE - BUBBLE_SIZE) / 2;
+        int offsetY = (TILE_SIZE - BUBBLE_SIZE) / 2;
+
+        // 设置最终坐标
+        this.setX(alignedX + offsetX);
+        this.setY(alignedY + offsetY);
+
+        // 使用定义的 BUBBLE_SIZE，而不是从图片获取
+        this.setW(BUBBLE_SIZE);
+        this.setH(BUBBLE_SIZE);
+
+        // 获取动画帧用于显示
         List<ImageIcon> frames = GameLoad.imgMaps.get("bubble");
-        this.setW(frames.get(0).getIconWidth());
-        this.setH(frames.get(0).getIconHeight());
-        this.setIcon(frames.get(0));
+        if (frames != null && !frames.isEmpty()) {
+            this.setIcon(frames.get(0));
+        } else {
+            System.err.println("错误：未能加载 'bubble' 动画帧。");
+            this.setIcon(new ImageIcon()); // 设置空图标防止崩溃
+        }
 
         this.creationTime = System.currentTimeMillis();
         return this;
@@ -71,6 +94,7 @@ public class Bubble extends ElementObj {
     private void explode() {
         this.setLive(false); // 标记自己为死亡，以便被移除
         ElementManager em = ElementManager.getManager();
+        final int TILE_SIZE = GameJFrame.TILE_SIZE; // 使用全局常量
 
         // 创建爆炸效果
         // 1. 中心

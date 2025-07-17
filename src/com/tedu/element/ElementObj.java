@@ -7,7 +7,7 @@ import javax.swing.ImageIcon;
 
 /**
  * @说明 所有元素的基类。
- * @author renjj
+ * @author xdedm0709
  *
  */
 public abstract class ElementObj {
@@ -68,14 +68,13 @@ public abstract class ElementObj {
 	 *        1.移动  2.换装  3.子弹发射
 	 */
 	public final void model(long gameTime) {
-//		先换装
-		updateImage();
-//		在移动
-		move();
-
-		// 执行元素的“行动”
-		// 玩家放置泡泡
 		action(gameTime);
+
+		// 2. 【再换装】然后，更新当前帧要显示的动画图像。
+		updateImage();
+
+		// 3. 【最后移动】最后，根据本帧的按键输入，计算出下一帧的新位置。
+		move();
 	}
 //	 long ... aaa  不定长的 数组,可以向这个方法传输 N个 long类型的数据
 	protected void updateImage() {}

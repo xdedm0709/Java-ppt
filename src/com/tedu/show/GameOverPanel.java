@@ -4,10 +4,10 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Image;
-import javax.swing.ImageIcon; // 导入 ImageIcon
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JPanel;
-import com.tedu.manager.GameLoad; // 【重要】导入 GameLoad 类
+import com.tedu.manager.GameLoad;
 
 public class GameOverPanel extends JPanel {
 
@@ -18,7 +18,7 @@ public class GameOverPanel extends JPanel {
         this.gameFrame = frame;
         this.setLayout(null);
 
-        // 【修改】直接从 GameLoad 的静态 Map 中获取已加载的图片
+        // 直接从 GameLoad 的静态 Map 中获取已加载的图片
         // GameLoad.loadImg() 方法已经将 "game_over_screen" 键和对应的图片存入了 imgMap
         ImageIcon bgIcon = GameLoad.imgMap.get("game_over_screen");
 
@@ -68,13 +68,5 @@ public class GameOverPanel extends JPanel {
             g.setColor(Color.BLACK);
             g.fillRect(0, 0, getWidth(), getHeight());
         }
-
-        // 绘制 "Game Over" 文本
-        g.setColor(Color.RED);
-        g.setFont(new Font("黑体", Font.BOLD, 72));
-        String gameOverText = "Game Over";
-        // 动态计算宽度使其居中
-        int textWidth = g.getFontMetrics().stringWidth(gameOverText);
-        g.drawString(gameOverText, (getWidth() - textWidth) / 2, 180);
     }
 }

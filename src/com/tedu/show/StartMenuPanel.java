@@ -11,6 +11,10 @@ import java.awt.event.MouseEvent;
 import javax.swing.JPanel;
 
 import com.tedu.manager.GameLoad;
+/**
+ * @说明 游戏的开始菜单。
+ * @author xdedm0709
+ */
 
 public class StartMenuPanel extends JPanel {
 
