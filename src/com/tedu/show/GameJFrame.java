@@ -13,6 +13,7 @@ import java.awt.event.MouseAdapter;
 import java.util.List;
 
 public class GameJFrame extends JFrame {
+	public static final int CONTENT_PANE_WIDTH = 800;
 	public static int GameX = 800;
 	public static int GameY = 600;
 	private JPanel currentPanel = null; // 当前正在显示的面板
@@ -55,23 +56,28 @@ public class GameJFrame extends JFrame {
 		// 加载游戏世界
 		ElementManager.getManager().init();
 		GameLoad.MapLoad(1);
-		// 1. 计算目标格子 (1, 11) 的左上角像素坐标
-		int gridX = 1;
-		int gridY = 11;
-		int gridPixelX = gridX * TILE_SIZE; // 1 * 30 = 30
-		int gridPixelY = gridY * TILE_SIZE; // 11 * 30 = 330
 
-		// 2. 计算偏移量，使玩家居中于格子
-		int offsetX = (TILE_SIZE - Play.PLAYER_SIZE) / 2; // (30 - 30) / 2 = 0
-		int offsetY = (TILE_SIZE - Play.PLAYER_SIZE) / 2; // (30 - 30) / 2 = 0
+		// 创建第一个玩家
+		int gridX1 = 1;
+		int gridY1 = 11;
+		int gridPixelX1 = gridX1 * TILE_SIZE;
+		int gridPixelY1 = gridY1 * TILE_SIZE;
+		int offsetX1 = (TILE_SIZE - Play.PLAYER_SIZE) / 2;
+		int offsetY1 = (TILE_SIZE - Play.PLAYER_SIZE) / 2;
+		int playerX1 = gridPixelX1 + offsetX1;
+		int playerY1 = gridPixelY1 + offsetY1;
+		GameLoad.loadPlayer(playerX1, playerY1, "up", 1);
 
-		// 3. 计算玩家最终的左上角坐标
-		int playerX = gridPixelX + offsetX;
-		int playerY = gridPixelY + offsetY;
-
-		// 4. 调用 GameLoad 创建玩家
-		GameLoad.loadPlayer(playerX, playerY, "up");
-
+		// 创建第二个玩家
+		int gridX2 = 25; // 第二个玩家的初始格子X坐标
+		int gridY2 = 1;  // 第二个玩家的初始格子Y坐标
+		int gridPixelX2 = gridX2 * TILE_SIZE;
+		int gridPixelY2 = gridY2 * TILE_SIZE;
+		int offsetX2 = (TILE_SIZE - Play.PLAYER_SIZE) / 2;
+		int offsetY2 = (TILE_SIZE - Play.PLAYER_SIZE) / 2;
+		int playerX2 = gridPixelX2 + offsetX2;
+		int playerY2 = gridPixelY2 + offsetY2;
+		GameLoad.loadPlayer(playerX2, playerY2, "down", 2);
 
 		// 1. 创建游戏面板实例
 		GameMainJPanel gamePanel = new GameMainJPanel();
@@ -92,7 +98,6 @@ public class GameJFrame extends JFrame {
 		GameThread gameThread = new GameThread(gamePanel, this);
 		gameThread.start();
 	}
-
 	// 切换到游戏结束面板的方法
 	public void switchToGameOverPanel() {
 		// 确保UI更新操作在事件分发线程（EDT）中执行，这是Swing的最佳实践

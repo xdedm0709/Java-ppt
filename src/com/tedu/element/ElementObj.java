@@ -107,12 +107,15 @@ public abstract class ElementObj {
 	public boolean pk(ElementObj obj) {	
 		return this.getRectangle().intersects(obj.getRectangle());
 	}
-	
+	private String name;
 	/**
 	 * 只要是 VO类 POJO 就要为属性生成 get和set方法
 	 */
 	public int getX() {
 		return x;
+	}
+	public String getName() {
+		return name;
 	}
 	public void setX(int x) {
 		this.x = x;
