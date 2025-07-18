@@ -4,7 +4,9 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.List;
 
@@ -22,10 +24,6 @@ import com.tedu.element.Play;
 public class GameLoad {
 	//	得到资源管理器
 	private static ElementManager em = ElementManager.getManager();
-	public static void loadPlayer(int x, int y, String direction, int playerNumber) {
-		ElementObj player = new Play(playerNumber).createElement(x + "," + y + "," + direction);
-		ElementManager.getManager().addElement(player, GameElement.PLAY);
-	}
 	//	图片集合  使用map来进行存储     枚举类型配合移动(扩展)
 	public static Map<String, ImageIcon> imgMap = new HashMap<>();
 	// 新的Map，用于存储动画帧（图像序列）
@@ -42,41 +40,68 @@ public class GameLoad {
 	private static Map<String, Class<?>> objMap = new HashMap<>();
 
 	/**
-	 * @param mapId 文件编号 文件id
-	 * @说明 传入地图id有加载方法依据文件规则自动产生地图文件名称，加载文件
+	 * @说明 传入地图id，加载并解析地图文件，创建所有地图元素。
+	 *      它能够根据方块类型，智能地选择正确的类来创建实例。
+	 * @param mapId 地图文件的编号
 	 */
 	public static void MapLoad(int mapId) {
-//		得到啦我们的文件路径
 		String mapName = "com/tedu/text/" + mapId + ".map";
-//		使用io流来获取文件对象   得到类加载器
 		ClassLoader classLoader = GameLoad.class.getClassLoader();
-		InputStream maps = classLoader.getResourceAsStream(mapName);
-		if (maps == null) {
-			System.out.println("配置文件读取异常,请重新安装");
+		InputStream mapsStream = classLoader.getResourceAsStream(mapName);
+
+		if (mapsStream == null) {
+			System.err.println("致命错误：无法加载地图文件 -> " + mapName);
 			return;
 		}
+
+		// 使用一个临时的 Properties 对象，避免与全局静态 pro 冲突
+		Properties mapProps = new Properties();
 		try {
-//			以后用的 都是 xml 和 json
-			pro.clear();
-			pro.load(maps);
-//			可以直接动态的获取所有的key，有key就可以获取 value
-			Enumeration<?> names = pro.propertyNames();
-			while (names.hasMoreElements()) {//获取是无序的
-//				这样的迭代都有一个问题：一次迭代一个元素。
-				String key = names.nextElement().toString();
-				System.out.println(pro.getProperty(key));
-//				就可以自动创建和加载地图
-				String[] arrs = pro.getProperty(key).split(";");
-				for (int i = 0; i < arrs.length; i++) {
-					ElementObj element = new MapObj().createElement(key + "," + arrs[i]);
-					System.out.println(element);
+			// 使用 InputStreamReader 来确保能正确读取包含特殊字符的文件
+			mapProps.load(new InputStreamReader(mapsStream, StandardCharsets.UTF_8));
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
+		}
+
+		// 遍历地图文件中的所有类型定义 (如 BRICK, IRON, box1, GRASS 等)
+		for (Object keyObj : mapProps.keySet()) {
+			String typeKey = keyObj.toString(); // "BRICK", "GRASS", "IRON", "box1" etc.
+			String[] positions = mapProps.getProperty(typeKey).split(";");
+
+			String objectId; // 将要从 obj.pro 获取模板的 ID
+
+			// 【核心逻辑】根据类型名进行分类，决定使用哪个对象模板
+			if (typeKey.startsWith("box")) {
+				objectId = "box";       // 所有 "box1", "box2" 等都使用 Box 类的模板
+			} else if (typeKey.equals("BRICK") || typeKey.equals("GRASS")) {
+				objectId = "brick";     // "BRICK" 和 "GRASS" 都使用 Brick 类的模板 (可摧毁)
+			} else {
+				// 其他所有类型 (IRON, HOUSE1, etc.) 都当作不可摧毁的 MapObj
+				objectId = "map_obj";
+			}
+
+			// 从我们预加载的对象工厂中获取对应的模板实例
+			ElementObj template = getObj(objectId);
+			if (template == null) {
+				System.err.println("创建地图失败：在 obj.pro 中找不到 ID 为 '" + objectId + "' 的对象模板。");
+				continue; // 跳过这个未知的类型
+			}
+
+			// 遍历该类型所有的坐标，并使用正确的模板来创建实例
+			for (String pos : positions) { // pos is "x,y"
+				// 将类型名和坐标拼接成创建字符串
+				String creationStr = typeKey + "," + pos; // e.g., "box1,120,120" or "GRASS,80,80"
+
+				ElementObj element = template.createElement(creationStr);
+				if (element != null) {
 					em.addElement(element, GameElement.MAPS);
 				}
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
+		System.out.println("地图 " + mapId + ".map 加载完成。");
 	}
+
 	/**
 	 *@说明 加载图片代码
 	 *加载图片 代码和图片之间差 一个 路径问题
@@ -88,11 +113,12 @@ public class GameLoad {
 		System.out.println("开始加载所有游戏资源...");
 		loadObj(); // 1. 首先加载对象配置，因为创建玩家时需要它
 		loadImg(); // 2. 然后加载所有图片资源
+		loadItemAnimations(); // 加载所有道具
 		System.out.println("所有资源加载完成。");
 	}
 
 	/**
-	 * @说明 加载图片。此版本已修正为使用 ClassLoader 并增加了详细的调试输出。
+	 * @说明 加载图片。使用 ClassLoader 并增加了详细的调试输出。
 	 */
 	public static void loadImg() {
 		String configUrl = "com/tedu/text/GameData.pro";
@@ -105,16 +131,13 @@ public class GameLoad {
 			return;
 		}
 
-		pro.clear();
+		Properties tempPro = new Properties();
 		try {
-			pro.load(configStream);
-			Set<Object> keys = pro.keySet();
+			tempPro.load(new InputStreamReader(configStream, StandardCharsets.UTF_8));
 
-			for (Object keyObj : keys) {
+			for (Object keyObj : tempPro.keySet()) {
 				String key = keyObj.toString();
-				String path = pro.getProperty(key);
-
-				// 使用 ClassLoader 获取资源的URL，这是最关键的修正
+				String path = tempPro.getProperty(key);
 				URL imageUrl = classLoader.getResource(path);
 
 				if (imageUrl == null) {
@@ -122,65 +145,122 @@ public class GameLoad {
 					continue; // 跳过这个错误的资源
 				}
 
-				// 判断是玩家精灵图还是普通图片
-				if (key.equals("player")) {
-					// 如果是玩家，执行精灵图切割逻辑
-					slicePlayerSprite(imageUrl);
-				} else if (key.equals("bubble")) { // 处理泡泡
-					sliceBubbleAnimation(imageUrl);
-				} else if (key.equals("explosion_sprite")) { // 处理爆炸
-					sliceExplosionSprites(imageUrl);
-				} else {
-					// 否则，作为单个图片加载
-					imgMap.put(key, new ImageIcon(imageUrl));
-					System.out.println("成功加载图片: " + key + " -> " + path);
+				// 使用 switch 语句来处理不同的资源类型
+				switch (key) {
+					case "player1": // 对应 player1
+						slicePlayerSprite(imageUrl, "player1");
+						break;
+					case "player2": // 对应 player2
+						slicePlayerSprite(imageUrl, "player2");
+						break;
+					case "bubble":
+						sliceBubbleAnimation(imageUrl);
+						break;
+					case "explosion_sprite":
+						sliceExplosionSprites(imageUrl);
+						break;
+					default:
+						imgMap.put(key, new ImageIcon(imageUrl));
+						System.out.println("  成功加载图片: " + key);
+						break;
 				}
 			}
-
 		} catch (IOException e) {
-			System.err.println("读取图片配置文件时发生IO错误！");
 			e.printStackTrace();
 		}
 	}
 
 	/**
-	 * @param imageUrl 精灵图的URL
-	 * @说明 专门用于切割玩家精灵图的方法
+	 * @说明 加载所有在 GameData.pro 中以 "item" 开头的道具动画。
+	 *      它会为每一张独立的道具图片切割出动画序列。
 	 */
-	private static void slicePlayerSprite(URL imageUrl) {
-		ImageIcon masterIcon = new ImageIcon(imageUrl);
-		Image masterImage = masterIcon.getImage();
+	public static void loadItemAnimations() {
+		System.out.println("--- 正在加载所有道具动画(基于GameData.pro)... ---");
 
-		// 检查图片是否成功加载
-		if (masterIcon.getIconWidth() <= 0 || masterIcon.getIconHeight() <= 0) {
-			System.err.println("加载玩家精灵图失败，图片尺寸无效: " + imageUrl.getPath());
+		// 1. 加载 GameData.pro 配置文件
+		String configUrl = "com/tedu/text/GameData.pro";
+		InputStream configStream = GameLoad.class.getClassLoader().getResourceAsStream(configUrl);
+		if (configStream == null) { /* ... 错误处理 ... */ return; }
+
+		Properties gameDataProps = new Properties();
+		try {
+			gameDataProps.load(new InputStreamReader(configStream, StandardCharsets.UTF_8));
+		} catch (IOException e) { e.printStackTrace(); return; }
+
+		// 2. 遍历配置文件，找到所有以 "item" 开头的键 (item1, item2, etc.)
+		for (Object keyObj : gameDataProps.keySet()) {
+			String key = keyObj.toString();
+
+			// 我们只关心 "item1", "item2" ... "item8" 这些键
+			if (key.startsWith("item")) {
+				String imagePath = gameDataProps.getProperty(key);
+				URL imageUrl = GameLoad.class.getClassLoader().getResource(imagePath);
+
+				if (imageUrl == null) {
+					System.err.println("  加载失败：找不到道具图片 -> " + imagePath + " (键: " + key + ")");
+					continue;
+				}
+
+				// 3. 调用切割方法为这张图片创建动画
+				//    假设所有道具动画都是4帧的
+				List<ImageIcon> frames = cutTopStripAnimation(imageUrl, 4);
+
+				// 4. 使用 item1_anim, item2_anim 等作为键存入动画库
+				String animationKey = key + "_anim";
+				imgMaps.put(animationKey, frames);
+				System.out.println("  成功加载道具动画: " + animationKey + " from " + imagePath);
+			}
+		}
+	}
+
+	/**
+	 * @说明 专门用于切割玩家精灵图的方法。
+	 *      它能为不同玩家加载动画，并使用正确的键名。
+	 * @param imageUrl 精灵图的URL
+	 * @param playerID 用于标识玩家的字符串, 如 "player1" 或 "player2"
+	 */
+	private static void slicePlayerSprite(URL imageUrl, String playerID) {
+		System.out.println("  -- 开始切割 " + playerID + " 的精灵_图: " + imageUrl.getPath());
+		ImageIcon masterIcon = new ImageIcon(imageUrl);
+
+		if (masterIcon.getIconWidth() <= 0) {
+			System.err.println("    加载 " + playerID + " 精灵图失败，图片尺寸无效。");
 			return;
 		}
 
-		System.out.println("开始切割玩家精灵图: " + imageUrl.getPath());
-
-		// 为了方便裁剪，将 Image 转换为 BufferedImage
 		BufferedImage bufferedMaster = new BufferedImage(
 				masterIcon.getIconWidth(),
 				masterIcon.getIconHeight(),
 				BufferedImage.TYPE_INT_ARGB);
-		bufferedMaster.getGraphics().drawImage(masterImage, 0, 0, null);
+		bufferedMaster.getGraphics().drawImage(masterIcon.getImage(), 0, 0, null);
 
-		int spriteWidth = masterIcon.getIconWidth() / 4;
-		int spriteHeight = masterIcon.getIconHeight() / 4;
+		// 假设所有玩家精灵图都是 4x4 的布局
+		int cols = 4;
+		int rows = 4;
+		int spriteWidth = masterIcon.getIconWidth() / cols;
+		int spriteHeight = masterIcon.getIconHeight() / rows;
 		String[] directions = {"down", "left", "right", "up"};
 
-		for (int i = 0; i < directions.length; i++) {
-			List<ImageIcon> frames = new ArrayList<>();
-			for (int j = 0; j < 4; j++) {
+		// i 对应行 (方向)
+		for (int i = 0; i < rows; i++) {
+			List<ImageIcon> frames = new ArrayList<>(); // 用于存放一个方向的所有动画帧
+			// j 对应列 (单个动画帧)
+			for (int j = 0; j < cols; j++) {
 				int x = j * spriteWidth;
 				int y = i * spriteHeight;
 				BufferedImage croppedSprite = bufferedMaster.getSubimage(x, y, spriteWidth, spriteHeight);
 				frames.add(new ImageIcon(croppedSprite));
 			}
-			imgMaps.put(directions[i], frames);
+
+			// 【核心修正】使用 playerID 和方向作为唯一的键来存储动画序列
+			String key = playerID + "_" + directions[i];
+
+			// 将切割好的动画帧列表与正确的键关联起来
+			imgMaps.put(key, frames);
+
+			System.out.println("    成功加载动画: " + key);
 		}
-		System.out.println("玩家动画已全部加载。");
+		System.out.println("  -- " + playerID + " 的动画已加载。");
 	}
 
 	/**
@@ -230,6 +310,53 @@ public class GameLoad {
 
 		// 将包含所有动画帧的列表存入 imgMaps 中，使用 "bubble" 作为键
 		imgMaps.put("bubble", frames);
+	}
+
+	/**
+	 * @说明 辅助方法：专门用于切割一张图片上半部分的水平动画条。
+	 *      它会自动计算帧尺寸并忽略下半部分的空白。
+	 * @param imageUrl 图片的URL
+	 * @param frameCount 动画包含的帧数
+	 * @return 包含所有动画帧的列表
+	 */
+	private static List<ImageIcon> cutTopStripAnimation(URL imageUrl, int frameCount) {
+		List<ImageIcon> frames = new ArrayList<>();
+		ImageIcon masterIcon = new ImageIcon(imageUrl);
+
+		if (masterIcon.getIconWidth() <= 0 || frameCount <= 0) {
+			return frames; // 返回空列表
+		}
+
+		BufferedImage bufferedMaster = new BufferedImage(
+				masterIcon.getIconWidth(),
+				masterIcon.getIconHeight(),
+				BufferedImage.TYPE_INT_ARGB);
+		bufferedMaster.getGraphics().drawImage(masterIcon.getImage(), 0, 0, null);
+
+		// 【核心逻辑】
+		// 1. 计算单帧的宽度
+		int frameWidth = masterIcon.getIconWidth() / frameCount;
+
+		// 2. 确定有效内容的高度。我们不关心下半部分，
+		//    所以可以假设单帧的高度等于宽度（对于方形道具），或者取图片总高度。
+		//    一个更健壮的方法是，假设动画帧是正方形的。
+		int frameHeight = frameWidth; // 假设道具帧是正方形
+
+		// 3. 切割上半部分的水平动画条
+		for (int i = 0; i < frameCount; i++) {
+			int x = i * frameWidth;
+			int y = 0; // 只在最顶行 (y=0) 切割
+
+			// 做一个边界检查，防止 frameHeight 超出图片实际高度
+			if (y + frameHeight <= bufferedMaster.getHeight()) {
+				BufferedImage frameImage = bufferedMaster.getSubimage(x, y, frameWidth, frameHeight);
+				frames.add(new ImageIcon(frameImage));
+			} else {
+				System.err.println("警告：切割动画时，计算出的帧高度超出了图片边界 -> " + imageUrl.getPath());
+				break;
+			}
+		}
+		return frames;
 	}
 
 	/**
@@ -326,16 +453,16 @@ public class GameLoad {
 	 * @param y 玩家的初始 y 坐标
 	 * @param direction 玩家的初始方向, 如 "up"
 	 */
-	public static void loadPlayer(int x, int y, String direction) {
+	public static void loadPlayer(int x, int y, String direction, String playerID) {
 		System.out.println("正在创建玩家...");
 		ElementObj playerTemplate = getObj("play");
 
 		if (playerTemplate instanceof Play) {
-			String creationStr = x + "," + y + "," + direction;
+			String creationStr = x + "," + y + "," + direction + "," + playerID; // 新格式
 			Play player = (Play) playerTemplate.createElement(creationStr);
 
 			em.addElement(player, GameElement.PLAY);
-			System.out.println("玩家已创建并添加。坐标:(" + x + "," + y + ")");
+			System.out.println(playerID + " 已创建并添加。");
 		} else {
 			System.err.println("创建玩家失败！因为 'play' 的对象模板不是 Play 类型或未找到。");
 		}
@@ -385,6 +512,23 @@ public class GameLoad {
 		} catch (IOException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
+	}
+
+	// 【新增】用于存储“箱子类型”到“道具类型”映射的 Map
+	public static final Map<String, String> BOX_TO_ITEM_MAP = new HashMap<>();
+
+	// 使用静态初始化块来填充这个映射
+	static {
+		System.out.println("--- 初始化箱子到道具的映射... ---");
+		// 右边的值必须与 obj.pro 中定义的道具键完全一致
+		BOX_TO_ITEM_MAP.put("box1", "item_surround_trap");
+		BOX_TO_ITEM_MAP.put("box2", "item_range_up");
+		BOX_TO_ITEM_MAP.put("box3", "item_reverse_cure");
+		BOX_TO_ITEM_MAP.put("box4", "item_reverse_walk");
+		BOX_TO_ITEM_MAP.put("box5", "item_reverse_other");
+		BOX_TO_ITEM_MAP.put("box6", "item_pause_other");
+		BOX_TO_ITEM_MAP.put("box7", "item_add_bubble");
+		BOX_TO_ITEM_MAP.put("box8", "item_resist_card");
 	}
 }
 

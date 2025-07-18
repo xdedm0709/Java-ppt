@@ -81,9 +81,14 @@ public abstract class ElementObj {
 	protected void action(long gameTime) {}
 	
 //	死亡方法  给子类继承的
-	public void die() {  //死亡也是一个对象
-		
+public void die() {
+	// 如果已经死亡了，就没必要再执行一次死亡逻辑
+	if (!this.live) {
+		return;
 	}
+	// 将存活状态设置为 false
+	this.setLive(false);
+}
 	
 	
 	public  ElementObj createElement(String str) {

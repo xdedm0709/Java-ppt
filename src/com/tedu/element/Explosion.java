@@ -1,138 +1,107 @@
 package com.tedu.element;
 
 import java.awt.Graphics;
-import java.util.ArrayList;
 import java.util.List;
 import javax.swing.ImageIcon;
+import com.tedu.manager.GameLoad;
+import com.tedu.show.GameJFrame;
 
 /**
- * @说明 爆炸效果（顺序播放指定的4张爆炸图片）
+ * @说明 爆炸效果（水柱）。它有自己的动画，并在播放完毕后消失。
+ * @author xdedm0709
  */
 public class Explosion extends ElementObj {
-    //存储用来播放的4张效果
-    private List<ImageIcon> explosionFrames = new ArrayList<>();
-    private int currentFrameIndex = 0;
+    private int power; // 爆炸的威力
+
+    // 动画属性
+    private int frameIndex = 0;
     private int frameDelay = 0;
-    private int frameInterval = 5;
+    private int animationSpeed = 4; // 动画播放速度，数字越小越快
+    private List<ImageIcon> frames; // 【核心】持有自己的动画帧列表，由 GameLoad 提供
 
-    // 生命周期控制
+    // 生命周期属性
     private long creationTime;
-    private boolean isAnimationFinished = false;
+    private long duration = 400; // 整个爆炸效果的持续时间（毫秒）
 
-    public Explosion() {
-        // 初始化时按顺序加载4张爆炸图片
-        loadExplosionFrames();
-    }
-
-
-    private void loadExplosionFrames() {
-        // 清空原有帧列表
-        explosionFrames.clear();
-
-        // 按顺序加载4张图片
-        String[] imagePaths = {
-                "bin/bubble1.jpg",
-                "bin/bubble2.jpg",
-                "bin/bubble3.jpg",
-                "bin/bubble4.jpg"
-        };
-
-        for (String path : imagePaths) {
-            try {
-                ImageIcon frame = new ImageIcon(path);
-                if (frame.getIconWidth() > 0 && frame.getIconHeight() > 0) {
-                    explosionFrames.add(frame);
-                } else {
-                    System.err.println("爆炸图片无效（宽高为0）：" + path);
-                }
-            } catch (Exception e) {
-                System.err.println("加载爆炸图片失败：" + path + "，错误：" + e.getMessage());
-            }
-        }
-
-        // 检查是否加载到有效图片
-        if (explosionFrames.isEmpty()) {
-            System.err.println("警告：未加载到任何有效爆炸图片！");
-        }
-    }
+    public Explosion() {}
 
     @Override
     public ElementObj createElement(String str) {
+        // 新的创建字符串格式: "x,y,type,power"
+        // 例如: "40,80,center,2"
         String[] arr = str.split(",");
-        if (arr.length < 2) {
-            System.err.println("爆炸效果参数错误，格式应为[x,y]");
+
+        // 基本参数解析
+        this.setX(Integer.parseInt(arr[0]));
+        this.setY(Integer.parseInt(arr[1]));
+        String type = arr[2];
+
+        // 解析并存储威力值
+        if (arr.length > 3) {
+            this.power = Integer.parseInt(arr[3]);
+        } else {
+            this.power = 1; // 如果没有提供威力值，给一个默认值 1
+        }
+
+        // 1. 根据类型从 GameLoad 获取正确的动画帧列表
+        String animationKey = "explosion_" + type;
+        this.frames = GameLoad.imgMaps.get(animationKey);
+
+        if (this.frames == null || this.frames.isEmpty()) {
+            System.err.println("创建爆炸效果失败！无法加载键为 '" + animationKey + "' 的动画。");
             this.setLive(false);
             return this;
         }
-        // 设置爆炸位置
-        this.setX(Integer.parseInt(arr[0]));
-        this.setY(Integer.parseInt(arr[1]));
 
-        // 设置初始尺寸（使用第一张有效图片的尺寸）
-        if (!explosionFrames.isEmpty()) {
-            ImageIcon firstFrame = explosionFrames.get(0);
-            this.setW(firstFrame.getIconWidth());
-            this.setH(firstFrame.getIconHeight());
-            this.setIcon(firstFrame);
-        } else {
-            // 无有效图片时使用默认尺寸
-            this.setW(40);
-            this.setH(40);
-            this.setLive(false);
-        }
+        // 2. 设置初始状态
+        ImageIcon firstFrame = this.frames.get(0);
+        this.setIcon(firstFrame);
+        // 爆炸效果的尺寸与格子大小保持一致
+        this.setW(GameJFrame.TILE_SIZE);
+        this.setH(GameJFrame.TILE_SIZE);
 
-        creationTime = System.currentTimeMillis();
+        this.creationTime = System.currentTimeMillis();
         return this;
+    }
+
+    public int getPower() {
+        return this.power;
     }
 
     @Override
     public void showElement(Graphics g) {
-        if (isLive() && !explosionFrames.isEmpty() && currentFrameIndex < explosionFrames.size()) {
-            ImageIcon currentFrame = explosionFrames.get(currentFrameIndex);
-            g.drawImage(
-                    currentFrame.getImage(),
-                    getX(), getY(), getW(), getH(),
-                    null
-            );
+        if (isLive() && this.getIcon() != null) {
+            g.drawImage(getIcon().getImage(), getX(), getY(), getW(), getH(), null);
         }
     }
 
+    // move() 方法负责状态更新
     @Override
     protected void move() {
-        // 动画播放完毕后标记为死亡
-        if (isAnimationFinished) {
-            this.setLive(false);
-            return;
-        }
-
-        updateExplosionFrame();
-    }
-
-    /**
-     * 更新爆炸动画帧（按顺序播放bubble1到bubble4）
-     */
-    private void updateExplosionFrame() {
-        if (explosionFrames.isEmpty()) {
-            isAnimationFinished = true;
-            return;
-        }
-
-        // 累加延迟计数器
-        frameDelay++;
-
-        // 达到间隔时切换到下一帧
-        if (frameDelay >= frameInterval) {
-            frameDelay = 0; // 重置延迟
-            currentFrameIndex++; // 切换到下一帧
-
-            // 检查是否播放到最后一帧
-            if (currentFrameIndex >= explosionFrames.size()) {
-                isAnimationFinished = true; // 标记动画结束
-            }
+        // 检查是否到了消失时间
+        if (System.currentTimeMillis() - creationTime > duration) {
+            this.setLive(false); // 标记自己为死亡
         }
     }
 
+    // updateImage() 方法负责动画帧的更新
     @Override
     protected void updateImage() {
+        if (!isLive() || this.frames == null) {
+            return;
+        }
+
+        frameDelay++;
+        if (frameDelay > animationSpeed) {
+            frameDelay = 0;
+            frameIndex++;
+        }
+
+        // 动画只播放一次，播放完毕后停在最后一帧，直到对象消失
+        if (frameIndex >= this.frames.size()) {
+            frameIndex = this.frames.size() - 1;
+        }
+
+        this.setIcon(this.frames.get(frameIndex));
     }
 }

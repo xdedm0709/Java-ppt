@@ -2,6 +2,7 @@ package com.tedu.controller;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -16,48 +17,39 @@ import com.tedu.manager.GameElement;
  *
  */
 public class GameListener implements KeyListener{
-	private ElementManager em=ElementManager.getManager();
-	
-	/*能否通过一个集合来记录所有按下的键，如果重复触发，就直接结束
-	 * 同时，第1次按下，记录到集合中，第2次判定集合中否有。
-	 *       松开就直接删除集合中的记录。
-	 * set集合
-	 * */
-	private Set<Integer> set=new HashSet<Integer>();
-	
+	private ElementManager em = ElementManager.getManager();
+
+	// 使用一个线程安全的 Set 来记录当前被按下的键
+	private final Set<Integer> pressedKeys = Collections.synchronizedSet(new HashSet<>());
+
+	public GameListener() {}
+
 	@Override
-	public void keyTyped(KeyEvent e) {
-	}
-	/**
-	 * 按下: 左37 上38 右39 下40    按tab没有反应
-	 * 实现主角的移动
-	 */
+	public void keyTyped(KeyEvent e) {}
+
 	@Override
 	public void keyPressed(KeyEvent e) {
-//		拿到玩家集合
-		System.out.println("按下"+e.getKeyCode());
-		int key=e.getKeyCode();
-		if(set.contains(key)) { //判定集合中是否已经存在,包含这个对象
-//			如果包含直接结束方法
-			return;
-		}
-		set.add(key);
-		List<ElementObj> play = em.getElementsByKey(GameElement.PLAY);
-		for(ElementObj obj:play) {
-			obj.keyClick(true, e.getKeyCode());
-		}
-	}
-	/**松开*/
-	@Override
-	public void keyReleased(KeyEvent e) {
-		if(!set.contains(e.getKeyCode())) {//如果这个不存在，就停止
-			return;
-		}//存在(已经按过这个案件)
-		set.remove(e.getKeyCode());//移除数据
-		List<ElementObj> play = em.getElementsByKey(GameElement.PLAY);
-		for(ElementObj obj:play) {
-			obj.keyClick(false, e.getKeyCode());
+		int keyCode = e.getKeyCode();
+
+		// 只有当这个键是“第一次”被按下时，才处理它
+		if (pressedKeys.add(keyCode)) { // .add() 方法在添加成功时返回 true
+			List<ElementObj> playList = em.getElementsByKey(GameElement.PLAY);
+			for (ElementObj player : playList) {
+				player.keyClick(true, keyCode);
+			}
 		}
 	}
 
+	@Override
+	public void keyReleased(KeyEvent e) {
+		int keyCode = e.getKeyCode();
+
+		// 当键被松开时，将它从 Set 中移除
+		if (pressedKeys.remove(keyCode)) { // .remove() 方法在移除成功时返回 true
+			List<ElementObj> playList = em.getElementsByKey(GameElement.PLAY);
+			for (ElementObj player : playList) {
+				player.keyClick(false, keyCode);
+			}
+		}
+	}
 }

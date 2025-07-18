@@ -13,9 +13,11 @@ public class GameOverPanel extends JPanel {
 
     private GameJFrame gameFrame;
     private Image backgroundImage; // 用于存放背景图片的成员变量
+    private String winnerMessage; // 用于存储胜利信息的变量
 
-    public GameOverPanel(GameJFrame frame) {
+    public GameOverPanel(GameJFrame frame, String message) {
         this.gameFrame = frame;
+        this.winnerMessage = message;
         this.setLayout(null);
 
         // 直接从 GameLoad 的静态 Map 中获取已加载的图片

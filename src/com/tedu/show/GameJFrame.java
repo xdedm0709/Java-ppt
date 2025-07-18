@@ -51,6 +51,7 @@ public class GameJFrame extends JFrame {
 	}
 
 	public void switchToGamePanel() {
+
 		System.out.println("指令：切换到游戏面板...");
 
 		// 加载游戏世界
@@ -66,7 +67,7 @@ public class GameJFrame extends JFrame {
 		int offsetY1 = (TILE_SIZE - Play.PLAYER_SIZE) / 2;
 		int playerX1 = gridPixelX1 + offsetX1;
 		int playerY1 = gridPixelY1 + offsetY1;
-		GameLoad.loadPlayer(playerX1, playerY1, "up", 1);
+		GameLoad.loadPlayer(playerX1, playerY1, "up", "player1");
 
 		// 创建第二个玩家
 		int gridX2 = 25; // 第二个玩家的初始格子X坐标
@@ -77,36 +78,45 @@ public class GameJFrame extends JFrame {
 		int offsetY2 = (TILE_SIZE - Play.PLAYER_SIZE) / 2;
 		int playerX2 = gridPixelX2 + offsetX2;
 		int playerY2 = gridPixelY2 + offsetY2;
-		GameLoad.loadPlayer(playerX2, playerY2, "down", 2);
+		GameLoad.loadPlayer(playerX2, playerY2, "up", "player2");
 
-		// 1. 创建游戏面板实例
 		GameMainJPanel gamePanel = new GameMainJPanel();
 
-		// 2. 将面板设置到窗体上
+		// 将面板设置到窗体上 (这是UI的切换)
 		switchPanel(gamePanel);
 
-		// 3. 添加键盘监听器
+		// 创建控制器线程
+		GameThread gameThread = new GameThread(gamePanel, this);
+
+		// 设置输入监听 (将监听器与控制器关联)
 		if (this.getKeyListeners().length > 0) {
 			this.removeKeyListener(this.getKeyListeners()[0]);
 		}
 		this.addKeyListener(new GameListener());
+
 		this.setFocusable(true);
 		this.requestFocusInWindow();
 
-		// 4. 创建并启动游戏主线程，将面板和窗体的引用传给它
-		System.out.println("启动游戏主线程...");
-		GameThread gameThread = new GameThread(gamePanel, this);
-		gameThread.start();
+		// 启动游戏线程
+		new GameThread(gamePanel, this).start();
 	}
 	// 切换到游戏结束面板的方法
-	public void switchToGameOverPanel() {
-		// 确保UI更新操作在事件分发线程（EDT）中执行，这是Swing的最佳实践
+	/**
+	 * @说明 切换到游戏结束面板的方法
+	 * @param winnerMessage 要在结束画面上显示的消息
+	 */
+	public void switchToGameOverPanel(String winnerMessage) {
+		// 使用 SwingUtilities 来确保线程安全
 		SwingUtilities.invokeLater(() -> {
-			// 移除键盘监听器，因为在结束菜单上不需要它
+			// 移除键盘监听器，因为在结束菜单上不再需要
 			if (this.getKeyListeners().length > 0) {
+				// 需要注意， getKeyListeners() 返回的是数组，可能需要遍历
+				// 为了简单起见，假设只有一个
 				this.removeKeyListener(this.getKeyListeners()[0]);
 			}
-			switchPanel(new GameOverPanel(this));
+
+			// 调用自己的 switchPanel 方法来切换内容
+			switchPanel(new GameOverPanel(this, winnerMessage));
 		});
 	}
 
