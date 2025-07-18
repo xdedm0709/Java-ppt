@@ -1,0 +1,13 @@
+play=com.tedu.element.Play
+file=com.tedu.element.PlayFile
+bubble=com.tedu.element.Bubble
+explosion=com.tedu.element.Explosion
+doubleb=com.tedu.element.Doubleb
+bluepill=com.tedu.element.Bluepill
+purplepill=com.tedu.element.Purplepill
+purpleghost=com.tedu.element.Purpleghost
+redghost=com.tedu.element.Redghost
+remotecontrol=com.tedu.element.Remotecontrol
+waterbomb=com.tedu.element.Waterbomb
+boxObj=com.tedu.element.BoxObj
+diamondcard=com.tedu.element.Diamondcard
