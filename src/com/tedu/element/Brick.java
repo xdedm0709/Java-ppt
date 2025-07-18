@@ -33,26 +33,28 @@ public class Brick extends ElementObj {
 
     @Override
     public ElementObj createElement(String str) {
-        // 格式: "TYPE,x,y"  例如: "BRICK,120,120"
+        // 1. 创建一个新的 Brick 实例
+        Brick newBrick = new Brick();
+
+        // 2. 解析字符串，并设置新实例的属性
         String[] arr = str.split(",");
-        this.type = arr[0];
+        newBrick.type = arr[0];
         int x = Integer.parseInt(arr[1]);
         int y = Integer.parseInt(arr[2]);
-
-        // 从 GameLoad 获取该类型的图片
-        ImageIcon icon = GameLoad.imgMap.get(this.type);
+        ImageIcon icon = GameLoad.imgMap.get(newBrick.type);
 
         if (icon != null) {
-            this.setX(x);
-            this.setY(y);
-            this.setW(icon.getIconWidth());
-            this.setH(icon.getIconHeight());
-            this.setIcon(icon);
+            newBrick.setX(x);
+            newBrick.setY(y);
+            newBrick.setW(icon.getIconWidth());
+            newBrick.setH(icon.getIconHeight());
+            newBrick.setIcon(icon);
         } else {
-            System.err.println("错误：无法为可摧毁物加载图片: " + this.type);
-            this.setLive(false);
+            newBrick.setLive(false);
         }
-        return this;
+
+        // 3. 返回
+        return newBrick;
     }
 
     @Override

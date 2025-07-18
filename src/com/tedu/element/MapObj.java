@@ -11,26 +11,28 @@ public class MapObj extends ElementObj {
 
 	@Override
 	public ElementObj createElement(String str) {
-		// 格式: "TYPE,x,y"  例如: "IRON,120,120"
+		// 1. 创建一个新的实例
+		MapObj newMapObj = new MapObj();
+
+		// 2. 解析字符串，并设置新实例的属性
 		String[] arr = str.split(",");
-		this.type = arr[0];
+		newMapObj.type = arr[0];
 		int x = Integer.parseInt(arr[1]);
 		int y = Integer.parseInt(arr[2]);
-
-		// 从 GameLoad 获取预加载的图片
-		ImageIcon icon = GameLoad.imgMap.get(this.type);
+		ImageIcon icon = GameLoad.imgMap.get(newMapObj.type);
 
 		if (icon != null) {
-			this.setX(x);
-			this.setY(y);
-			this.setW(icon.getIconWidth());
-			this.setH(icon.getIconHeight());
-			this.setIcon(icon);
+			newMapObj.setX(x);
+			newMapObj.setY(y);
+			newMapObj.setW(icon.getIconWidth());
+			newMapObj.setH(icon.getIconHeight());
+			newMapObj.setIcon(icon);
 		} else {
-			System.err.println("错误：无法为地图对象加载图片: " + this.type);
-			this.setLive(false);
+			newMapObj.setLive(false);
 		}
-		return this;
+
+		// 3. 返回这个【新实例】
+		return newMapObj;
 	}
 
 	// 静态地图元素不需要移动或行动

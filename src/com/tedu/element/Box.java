@@ -38,25 +38,28 @@ public class Box extends ElementObj {
      */
     @Override
     public ElementObj createElement(String str) {
+        // 1. 创建一个新的 Box 实例
+        Box newBox = new Box();
+
+        // 2. 解析字符串，并设置新实例的属性
         String[] arr = str.split(",");
-        this.boxType = arr[0];
+        newBox.boxType = arr[0];
         int x = Integer.parseInt(arr[1]);
         int y = Integer.parseInt(arr[2]);
-
-        // 从 GameLoad 获取该类型箱子的初始图片
-        ImageIcon icon = GameLoad.imgMap.get(this.boxType);
+        ImageIcon icon = GameLoad.imgMap.get(newBox.boxType);
 
         if (icon != null) {
-            this.setX(x);
-            this.setY(y);
-            this.setW(icon.getIconWidth());
-            this.setH(icon.getIconHeight());
-            this.setIcon(icon);
+            newBox.setX(x);
+            newBox.setY(y);
+            newBox.setW(icon.getIconWidth());
+            newBox.setH(icon.getIconHeight());
+            newBox.setIcon(icon);
         } else {
-            System.err.println("错误：无法为箱子加载图片: " + this.boxType);
-            this.setLive(false); // 加载失败，直接设置为死亡
+            newBox.setLive(false);
         }
-        return this;
+
+        // 3. 返回
+        return newBox;
     }
 
     /**
