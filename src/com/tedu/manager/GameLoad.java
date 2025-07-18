@@ -22,10 +22,7 @@ import com.tedu.element.Play;
 public class GameLoad {
 	//	得到资源管理器
 	private static ElementManager em = ElementManager.getManager();
-	public static void loadPlayer(int x, int y, String direction, int playerNumber) {
-		ElementObj player = new Play(playerNumber).createElement(x + "," + y + "," + direction);
-		ElementManager.getManager().addElement(player, GameElement.PLAY);
-	}
+
 	//	图片集合  使用map来进行存储     枚举类型配合移动(扩展)
 	public static Map<String, ImageIcon> imgMap = new HashMap<>();
 	// 新的Map，用于存储动画帧（图像序列）

@@ -33,12 +33,6 @@ public class ElementManager {
 //		list.add(obj);
 		gameElements.get(ge).add(obj);//添加对象到集合中，按key值就行存储
 	}
-	public void removeElement(ElementObj element, GameElement type) {
-		List<ElementObj> elements = gameElements.get(type);
-		if (elements != null) {
-			elements.remove(element);
-		}
-	}
 //	依据key返回 list集合，取出某一类元素
 	public List<ElementObj> getElementsByKey(GameElement ge){
 		String str = new String("abcd");
